@@ -16,7 +16,6 @@ function Hero() { //circle is the circle object
   this.circle.position.y = 300;
   this.circle.position.acc = .35;
   this.circle.position.vel_max = 5;
-  
 }
 
 Hero.prototype.strategy_movement = function() {
@@ -127,28 +126,23 @@ function Enemy(id, radius, color, health, attack_speed) {
   this.health = health;
 
   this.attack_speed = attack_speed;
+  this.damage = 25;
   this.last_attack_time = 5;
-}
 
-Enemy.prototype.attack = function(their) {
-  if(this.can_attack()) {
-    console.log(their);
-    their.health -= this.attack;
+  this.attack = function(their)  {
+    their.health -= this.damage;
     this.last_attack_time = game_time;
   }
-};
-
-function Companion(id, radius, color, health, attack_speed) {
-   
 }
 
 // time_frames is frame length of cooldown
-Enemy.prototype.can_attack = function(time_frames) {
-  if(game_time - this.last_attack_time > this.attack_speed) {
-    return true;
-  }
-  else {
-    return false;
+Enemy.prototype.can_attack = function() {
+  return game_time - this.last_attack_time > this.attack_speed;
+};
+
+Enemy.prototype.if_can_attack_attack = function(them) {
+  if(this.can_attack()) {
+    this.attack(them);
   }
 };
 
@@ -157,24 +151,9 @@ Enemy.prototype.run = function() {
   this.move_by_velocity();
 };
 
-// had an idea about moving companions only if the hero had been moving, but I don't like it.
-// timer = 0;
-// distances = [];
-// prev_distance = 0;
-// next_distance = 0;
-// Hero.prototype.isMoving = function() {
-//   nex
-//   distances[timer%180] = 
-// };
-
 Enemy.prototype.move_by_velocity = function() {
   this.circle.position.x += this.circle.position.vel_x*this.circle.position.vel;
   this.circle.position.y += this.circle.position.vel_y*this.circle.position.vel;
-};
-
-Circle.prototype.move_by_velocity_fraction = function(frac) {
-  this.position.x += this.position.vel_x*this.position.vel / frac;
-  this.position.y += this.position.vel_y*this.position.vel / frac;
 };
 
 Enemy.prototype.accelerate_to_hero = function() {
@@ -223,6 +202,11 @@ function Circle() {
   }
 }
 
+Circle.prototype.move_by_velocity_fraction = function(frac) {
+  this.position.x += this.position.vel_x*this.position.vel / frac;
+  this.position.y += this.position.vel_y*this.position.vel / frac;
+};
+
 Circle.prototype.move_to = function(x,y) {
   this.position.x = x;
   this.position.y = y;
@@ -233,47 +217,37 @@ Circle.prototype.collision = function(otherCircle) {
   var vec_x = this.position.x - otherCircle.position.x,
       vec_y = this.position.y - otherCircle.position.y,
       dist = sqrt(vec_x*vec_x + vec_y*vec_y);
-
+  /*
+   * these are the physics employed in the collision of the game.
+   * Typically, enemies move in a constant acceleration vector towards
+   * a specified point.
+   */
   if(dist < this.radius + otherCircle.radius) {
-
-    //these are momentum changes, but I don't think I figured them out :/
+    /* 
+     * these are momentum changes, they might be wrong, but it looks
+     * okay, so it's a good "estimate" :)
+     */
     var frac_of_radius_1 = this.radius / (this.radius + otherCircle.radius),
         frac_of_radius_2 = otherCircle.radius / (this.radius + otherCircle.radius);
     var vel = this.position.vel + otherCircle.position.vel;
 
-    //added the 0.5 to make velocity loss higher
+    /* added the 0.5 to make velocity loss higher, more desirable.
+    Cut radius in half upon collision */
     this.position.vel = 0.5*frac_of_radius_2 * vel;
     otherCircle.position.vel = 0.5*frac_of_radius_1 * vel;
 
-    //change direction to be opposite of this
+    /* change direction to be opposite of this */
     otherCircle.position.vel_x = -vec_x/dist;
     otherCircle.position.vel_y = -vec_y/dist;
     this.position.vel_x = vec_x/dist;
     this.position.vel_y = vec_y/dist;
 
-    //activate attack
-    //console.log(cList.list[this.id]);
-
-    //console.log(cList.list[25]);
-    if(cList.list[this.id].can_attack()) {
-      console.log(cList.list[this.id]);
-      cList.list[this.id].attack(cList.list[this.id]);
-    }
+    return true //useful for using inside an if statement.  THAT MEANS DONT RELY ON THIS NORMAL COLLISION
   }
+  return false
 };
 
-// Circle.prototype.apply_collision = function(circle) {
-
-//   // I think this works, but it does nothing with equal size balls, so ha
-
-//   // var frac_of_radius_1 = this.radius / (this.radius + circle.radius),
-//   //     frac_of_radius_2 = circle.radius / (this.radius + circle.radius);
-//   // var vel = this.position.vel + circle.position.vel;
-//   // this.position.vel = frac_of_radius_1 * vel;
-//   // circle.position.vel = frac_of_radius_2 * vel;
-//   // console.log(this.position.vel);
-// };
-
+//brings up the Math module.  Easier to call that way.
 var sqrt = Math.sqrt;
 
 //returns delta_x, delta_y, and dist
@@ -285,26 +259,6 @@ Circle.prototype.delta_x_y_dist = function(otherCircle) { //enemy, hero, or comp
           delta_y/dist, //1
           dist]; //2
 };
-
-// BasicEnemy.prototype.hero_collision = function() {
-//   var delta_x = this.position.x - hero.position.x,
-//       delta_y = this.position.y - hero.position.y,
-//       dist = Math.sqrt(delta_x*delta_x + delta_y*delta_y);
-
-//   if(dist <= this.position.radius + hero.position.radius) {
-//     //changes vel vector to bound away
-//     this.position.vel = hero.position.vel/2 + this.position.vel/2;
-//     this.position.vel_x = delta_x/dist;
-//     this.position.vel_y = delta_y/dist;
-
-//     if(this.hold_acceleration_timer === 0) {
-//       this.hold_acceleration_timer += 60
-//     }
-
-//     //deal damage to hero in collision
-//     hero.health(this.attack());
-//   }
-// };
 
 Circle.prototype.strategy_movement = function() {
 };

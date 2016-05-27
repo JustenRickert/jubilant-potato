@@ -27,23 +27,26 @@ canvas.height = screen.height - 32;
 var click_x = canvas.width/2;
 var click_y = canvas.height/2;
 
+// creates the point on the canvas wherever you click
 canvas.onmousedown = function (e) {
-  click_x = e.offsetX; // -33;
-  click_y = e.offsetY; // - 55.25;
+  click_x = e.offsetX;
+  click_y = e.offsetY;
 };
 
-//localize AnimationFrame
+//localize AnimationFrame, requestAnimationFrame is easy to call.
 var requestAnimationFrame = window.requestAnimationFrame ||
   window.mozRequestAnimationFrame ||
   window.webkitRequestAnimationFrame ||
   window.msRequestAnimationFrame;
 
-/* GAME
- * ****************** */
+/* 
+ * GAME
+ * */
 
-/* Note
+/* 
+ * Note
  * functions loaded befor this file:
- * enemy.js, hero.js, random.js, messages.js
+ * Circle.js, (todo) Battle.js
  */
 
 var cList = new CircleList();
@@ -55,6 +58,7 @@ function start() {
 
   cList.collision(); //does collision shit for everybody moving
                      //contains heavy FOR loops be careful
+  cList.death_check();
 
   for(var id in cList.enemy) {
     cList.enemy[id].circle.draw();
@@ -78,14 +82,15 @@ function CircleList() {
   this.list = {} //this is all enemies, companions and
   
   //must set i=1 so radius will not be 0
-  for(var i=0;i<25;i++){
+  for(var i=0;i<5;i++){
     this.enemy[i] = new Enemy(i,8,'red', 430, 240);
     this.enemy[i].circle.position.x = 4*canvas.width/5 + i;
     this.enemy[i].circle.position.y = 4*canvas.height/5 + i;
     this.list[i] = this.enemy[i];
   }
-  for(var j=i;j<15+i;j++){
-    this.companion[j] = new Enemy(j,16,'blue', 480);
+  for(var j=i;j<3+i;j++){
+    this.companion[j] = new Enemy(j,16,'blue', 480, 750);
+    this.companion[j].enemy = false;
     this.companion[j].circle.position.x = canvas.width/5 + j;
     this.companion[j].circle.position.y = canvas.height/5 + j;
     this.list[j] = this.companion[j];
@@ -95,43 +100,61 @@ function CircleList() {
     /* 
      * let <-> denote 'checks collision with,' then we need that:
      * enemy <-> enemy, enemy <-> companion, companion <-> companion,
-     * enemy <-> hero, and campanion <-> hero. 5 total.
+     * enemy <-> hero, and campanion <-> hero. 5 total.  Also note
+     * that collision here contains the code which applies the physics
+     * to the game.
      */
     //look at each index i
     for(var i in this.enemy) {
       for(var j in this.enemy) {
         //dont look at the own index!
         if(i !== j) {
-          //enemy to enemy might hit harder?
-          this.enemy[i].circle.collision(this.enemy[j].circle);
+          if(this.enemy[i].circle.collision(this.enemy[j].circle)) { //returns true upon collision
+          }
         }
       }
     }
     for(var i in this.enemy) {
       for(var j in this.companion) {
         //same indexes are okay
-        this.enemy[i].circle.collision(this.companion[j].circle);
+        if(this.enemy[i].circle.collision(this.companion[j].circle)) {
+          this.enemy[i].if_can_attack_attack(this.companion[j]);
+          this.companion[j].if_can_attack_attack(this.enemy[i]);
+        }
       }
     }
     
     for(var i in this.companion) {
       for(var j in this.companion) {
         if(i != j) {
-          this.companion[i].circle.collision(this.companion[j].circle);
+          if(this.companion[i].circle.collision(this.companion[j].circle)) {
+          }
         }
       }
     }
+
+    //check hero collision
     for(var i in this.companion) {
-      //check hero collision
-      this.companion[i].circle.collision(cList.hero.circle);
+      if(this.companion[i].circle.collision(cList.hero.circle)) {
+        //nothing
+      }
     }
+    
+    //check hero collision
     for(var j in this.enemy) {
-      //check hero collision
-      this.enemy[j].circle.collision(cList.hero.circle);
+      if(this.enemy[j].circle.collision(cList.hero.circle)){
+        this.enemy[j].if_can_attack_attack(cList.hero);
+      }
     }
+    
+    // for(var i in this.companion) {
+    // }
   };
-    // I don't think I'm gonna do this, doing the collisions after the
-    // for loop.
-    // collision_list[j][0].apply_collision(collision_list[j][1]);
-      //TODO Each collision is inacted twice, one for each collision.
+
+  this.death_check = function() {
+  };
+  //Right now if a collision happens they both detect it and apply
+  //effects.  It's not as efficient as it could be.
 }
+
+
