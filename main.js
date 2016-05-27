@@ -46,12 +46,9 @@ var requestAnimationFrame = window.requestAnimationFrame ||
  * enemy.js, hero.js, random.js, messages.js
  */
 
-var game = new Game();
-function Game() {
-  this.hero = new Hero();
-}
-
 var cList = new CircleList();
+
+var game_time = 0;
 
 function start() {
   context.clearRect(0,0, canvas.width, canvas.height);
@@ -67,12 +64,10 @@ function start() {
     cList.companion[id].circle.draw();
     cList.companion[id].run();
   }
-
   cList.hero.run();
   cList.hero.circle.draw();
 
-
-  //  timer += 1;
+  game_time += 1;
   requestAnimationFrame(start);
 } start();
 
@@ -80,24 +75,27 @@ function CircleList() {
   this.hero = new Hero();
   this.enemy = {};
   this.companion = {};
+  this.list = {} //this is all enemies, companions and
   
   //must set i=1 so radius will not be 0
-  for(var i=1;i<25;i++){
-    this.enemy[i] = new Enemy(i,8,'blue', 430);
-    this.enemy[i].circle.position.x = 500 + i*32;
-    this.enemy[i].circle.position.y = 200 + i*32;
+  for(var i=0;i<25;i++){
+    this.enemy[i] = new Enemy(i,8,'red', 430, 240);
+    this.enemy[i].circle.position.x = 4*canvas.width/5 + i;
+    this.enemy[i].circle.position.y = 4*canvas.height/5 + i;
+    this.list[i] = this.enemy[i];
   }
-    for(var i=1;i<15;i++){
-    this.companion[i] = new Enemy(i,16,'red', 500);
-    this.companion[i].circle.position.x = 600 + i*32;
-    this.companion[i].circle.position.y = 100 + i*32;
+  for(var j=i;j<15+i;j++){
+    this.companion[j] = new Enemy(j,16,'blue', 480);
+    this.companion[j].circle.position.x = canvas.width/5 + j;
+    this.companion[j].circle.position.y = canvas.height/5 + j;
+    this.list[j] = this.companion[j];
   }
   
   this.collision = function() {
     /* 
      * let <-> denote 'checks collision with,' then we need that:
      * enemy <-> enemy, enemy <-> companion, companion <-> companion,
-     * enemy <-> hero, and campanion <-> hero.
+     * enemy <-> hero, and campanion <-> hero. 5 total.
      */
     //look at each index i
     for(var i in this.enemy) {
@@ -129,7 +127,7 @@ function CircleList() {
     }
     for(var j in this.enemy) {
       //check hero collision
-      this.enemy[i].circle.collision(cList.hero.circle);
+      this.enemy[j].circle.collision(cList.hero.circle);
     }
   };
     // I don't think I'm gonna do this, doing the collisions after the

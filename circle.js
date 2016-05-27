@@ -1,4 +1,6 @@
-/* Circle will be each object on canvas.  Each one will hold an enemy object or companion object, with one circle being the hero object. */
+/* There are heroes, companions and enemies.  Each has an object
+ * circle which holds positions, colors and radius and things
+ */
 
 var hero = new Hero();
 
@@ -110,7 +112,7 @@ Hero.prototype.accelerate_to_point = function() {
  * 
  */
 
-function Enemy(id, radius, color, health) {
+function Enemy(id, radius, color, health, attack_speed) {
 
   this.id = id; 
   this.circle = new Circle();
@@ -119,18 +121,35 @@ function Enemy(id, radius, color, health) {
   this.circle.color = color;
   this.circle.position.vel_max = 3;
   this.circle.position.acc = 1;
+  //change this?
+  this.enemy = true;
   
   this.health = health;
+
+  this.attack_speed = attack_speed;
+  this.last_attack_time = 5;
 }
 
 Enemy.prototype.attack = function(their) {
-  // if(this.can_attack()) {
-  //   their.health -= this.attack;
-  // }
+  if(this.can_attack()) {
+    console.log(their);
+    their.health -= this.attack;
+    this.last_attack_time = game_time;
+  }
 };
 
-Enemy.prototype.can_attack = function() {
-//  if(
+function Companion(id, radius, color, health, attack_speed) {
+   
+}
+
+// time_frames is frame length of cooldown
+Enemy.prototype.can_attack = function(time_frames) {
+  if(game_time - this.last_attack_time > this.attack_speed) {
+    return true;
+  }
+  else {
+    return false;
+  }
 };
 
 Enemy.prototype.run = function() {
@@ -232,7 +251,14 @@ Circle.prototype.collision = function(otherCircle) {
     this.position.vel_x = vec_x/dist;
     this.position.vel_y = vec_y/dist;
 
-    //TODO activate attack
+    //activate attack
+    //console.log(cList.list[this.id]);
+
+    //console.log(cList.list[25]);
+    if(cList.list[this.id].can_attack()) {
+      console.log(cList.list[this.id]);
+      cList.list[this.id].attack(cList.list[this.id]);
+    }
   }
 };
 
