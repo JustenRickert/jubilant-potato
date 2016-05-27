@@ -1,0 +1,118 @@
+body {
+    background: linear-gradient(135deg, #DADACA,#F5F5DC);
+}
+
+#box {
+    position: absolute;
+    margin: 16px;
+    z-index: 1;
+}
+
+#enemy {
+    position: absolute;
+    margin: 16px;
+    z-index: 0;
+}
+
+.left {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 40%;
+    margin-left: 16px;
+}
+
+#points {
+    position: relative;
+}
+
+#time {
+    position: relative;
+}
+
+#resCount {
+    position: relative;
+    visibility: hidden;
+}
+
+.right {
+    text-align: right;
+    
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 40%;
+    margin-right: 16px;
+}
+
+.center {
+    position: fixed;
+    right: 45%;
+}
+
+#messageBoard {
+}
+
+#hero {
+    	font-family: sans-serif,Century Gothic,CenturyGothic,AppleGothic;
+	font-size: 24px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: 500;
+	line-height: 26.4px;
+}
+
+#battle {
+	font-family: sans-serif,Century Gothic,CenturyGothic,AppleGothic;
+	font-size: 24px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: 500;
+	line-height: 26.4px;
+}
+
+.preloader {
+    animation-name: preloader;
+    animation-iteration-count: infinite;
+    animation-duration: 3600s;
+    border: 4px solid #aaa;
+    height: 32px;
+    left: 50%;
+    margin: -16px 0 0 -16px;
+    position: absolute;
+    top: 50%;
+    width: 32px;
+    z-index: -2;
+}
+
+@keyframes preloader {
+    0% {
+	border-color: #aaa;
+	background-color:blue;
+	transform: rotate(0);
+    }
+    
+    25% {
+	border-color: red;
+	background-color:#aaa;
+	transform: rotate(-90deg);
+    }
+    
+    50% {
+	border-color: green;
+	background-color: red;
+	transform: rotate(-180deg);
+    }
+    
+    75% {
+	border-color: blue;
+	background-color: green;
+	transform: rotate(-270deg);
+    }
+    
+    100% {
+	border-color: #aaa;
+	background-color: blue;
+	transform: rotate(-360deg);
+    }
+}
