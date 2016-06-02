@@ -4,19 +4,62 @@
 
 var hero = new Hero();
 
-/* HERO
- * 
+/* 
+ * HERO
  */
+
+// TODO: Idea, health pack pick up.
+
 function Hero() { //circle is the circle object
   this.circle = new Circle();
   this.circle.color = "black";
   this.circle.radius = 16;
+  this.dead = false;
 
-  this.circle.position.x = 500;
-  this.circle.position.y = 300;
+  this.health = 10.0;
+  this.circle.position.x = 50;
+  this.circle.position.y = 30;
   this.circle.position.acc = .35;
   this.circle.position.vel_max = 5;
+
+  this.damage = 5;
+  this.last_attack_time = 0;
+  this.attack_speed = 240;
+  this.attack = function(their)  {
+    their.health -= this.damage;
+    this.last_attack_time = GAME_TIME;
+  }
 }
+
+Hero.prototype.isAlive = function() {
+  return !this.dead;
+};
+
+Hero.prototype.health_status = function() {
+  context.fillStyle = 'white';
+  context.font="15px Verdana";
+  context.fillText(Math.ceil(this.health), this.circle.position.x-5, this.circle.position.y+3);
+};
+
+Hero.prototype.check_death = function() {
+  if(this.health <= 0) {
+    this.dead = true;
+    this.circle.color = "#D3D3D3";
+  }
+};
+
+/* time_frames is frame length of cooldown */
+Hero.prototype.can_attack = function() {
+  return GAME_TIME - this.last_attack_time > this.attack_speed;
+};
+
+Hero.prototype.if_can_attack_attack = function(them) {
+  if(this.can_attack()) {
+    this.attack(them);
+  }
+};
+
+//Hero.prototype.strategy_movement
 
 Hero.prototype.strategy_movement = function() {
   this.accelerate_to_point();
@@ -69,14 +112,14 @@ Hero.prototype.move_to_point = function() {
   this.circle.position.y -= position.vel_y*position.vel;
 };
 
-//click_x defined on main
+/* click_x defined on main */
 Hero.prototype.accelerate_to_point = function() {
   var position = this.circle.position;
   var delta_x = this.circle.position.x - click_x,
       delta_y = this.circle.position.y - click_y,
       dist = Math.sqrt(delta_x*delta_x + delta_y*delta_y);
 
-  //new acceleration vector
+  /* new acceleration vector */
   if(dist != 0) {
     position.acc_x = delta_x / dist;
     position.acc_y = delta_y / dist;
@@ -88,14 +131,14 @@ Hero.prototype.accelerate_to_point = function() {
     var acc = this.circle.position.acc;
   }
 
-  //unit vectors times magnitudes, then find the magnitude of that
+  /* unit vectors times magnitudes, then find the magnitude of that */
   var vel_x = position.vel_x*position.vel || 0,
       vel_y = position.vel_y*position.vel || 0,
       acc_x = position.acc_x*position.acc,
       acc_y = position.acc_y*position.acc,
       vec_mag = Math.sqrt((vel_x+acc_x)*(vel_x+acc_x) + (vel_y+acc_y)*(vel_y+acc_y));
 
-  //accelerate if can accelerate
+  /* accelerate if can accelerate */
   if(position.vel < this.circle.position.vel_max) {
     this.circle.position.vel += this.circle.position.acc;
   } else {
@@ -106,38 +149,45 @@ Hero.prototype.accelerate_to_point = function() {
   this.circle.position.vel_y = (vel_y+acc_y)/vec_mag;
 };
 
-
-/* ENEMY
- * 
+/* 
+ * ENEMY
  */
 
-function Enemy(id, radius, color, health, attack_speed) {
-
+function Enemy(id, radius, color, level) {
+  this.exp = 0.1*level + 1;
   this.id = id; 
   this.circle = new Circle();
   this.circle.id = id;
   this.circle.radius = radius;
   this.circle.color = color;
   this.circle.position.vel_max = 3;
-  this.circle.position.acc = 1;
-  //change this?
-  this.enemy = true;
-  
-  this.health = health;
+  this.circle.position.acc = Math.sqrt(level/50) * 1.5 + 0.3; //max acc is then 1.8
 
-  this.attack_speed = attack_speed;
-  this.damage = 25;
-  this.last_attack_time = 5;
+  this.health =  level/5 + 1;
+  
+  this.dead = false;
+
+  this.damage = .6*level/50 + 1;
+  this.attack_speed = 600 - 450 * level/50;
+  this.last_attack_time = 0;
 
   this.attack = function(their)  {
     their.health -= this.damage;
-    this.last_attack_time = game_time;
+    this.last_attack_time = GAME_TIME;
   }
 }
 
-// time_frames is frame length of cooldown
+Enemy.prototype.rewardPoints = function() {
+  game.exp += this.exp;
+};
+
+Enemy.prototype.isAlive = function() {
+  return !this.dead;
+};
+
+/* time_frames is frame length of cooldown */
 Enemy.prototype.can_attack = function() {
-  return game_time - this.last_attack_time > this.attack_speed;
+  return GAME_TIME - this.last_attack_time > this.attack_speed && this.isAlive();
 };
 
 Enemy.prototype.if_can_attack_attack = function(them) {
@@ -147,8 +197,16 @@ Enemy.prototype.if_can_attack_attack = function(them) {
 };
 
 Enemy.prototype.run = function() {
-  this.accelerate_to_hero();
+  if(this.isAlive()) {
+    this.accelerate_to_hero();
+  } else {
+    this.slow_to_stop();
+  }
   this.move_by_velocity();
+};
+
+Enemy.prototype.slow_to_stop = function() {
+  this.circle.position.vel /= 1.01;
 };
 
 Enemy.prototype.move_by_velocity = function() {
@@ -158,7 +216,7 @@ Enemy.prototype.move_by_velocity = function() {
 
 Enemy.prototype.accelerate_to_hero = function() {
   //unit vector to hero position
-  var vec = this.circle.delta_x_y_dist(cList.hero.circle); //[012]
+  var vec = this.circle.delta_x_y_dist(battle.cList.hero.circle); //[012]
 
   //accel vectors
   this.circle.position.acc_x = -vec[0];
@@ -212,45 +270,50 @@ Circle.prototype.move_to = function(x,y) {
   this.position.y = y;
 }
 
+/**
+ * these are the physics employed in the collision of the game.
+ * Typically, enemies move in a constant acceleration vector towards
+ * a specified point.
+ */
 Circle.prototype.collision = function(otherCircle) {
-  //unit vector and difference
+
+  /* unit vector and difference */
   var vec_x = this.position.x - otherCircle.position.x,
       vec_y = this.position.y - otherCircle.position.y,
       dist = sqrt(vec_x*vec_x + vec_y*vec_y);
-  /*
-   * these are the physics employed in the collision of the game.
-   * Typically, enemies move in a constant acceleration vector towards
-   * a specified point.
-   */
+
   if(dist < this.radius + otherCircle.radius) {
-    /* 
-     * these are momentum changes, they might be wrong, but it looks
-     * okay, so it's a good "estimate" :)
-     */
+    /* these are momentum changes, they might be wrong, but it looks
+    okay, so it's a good "estimate" :) */
     var frac_of_radius_1 = this.radius / (this.radius + otherCircle.radius),
         frac_of_radius_2 = otherCircle.radius / (this.radius + otherCircle.radius);
     var vel = this.position.vel + otherCircle.position.vel;
 
     /* added the 0.5 to make velocity loss higher, more desirable.
     Cut radius in half upon collision */
-    this.position.vel = 0.5*frac_of_radius_2 * vel;
-    otherCircle.position.vel = 0.5*frac_of_radius_1 * vel;
+    this.position.vel = frac_of_radius_2 * vel;
+    otherCircle.position.vel = frac_of_radius_1 * vel;
 
-    /* change direction to be opposite of this */
+    /* change direction to be opposite of this, might want to move
+    this function somewhere else? */
     otherCircle.position.vel_x = -vec_x/dist;
     otherCircle.position.vel_y = -vec_y/dist;
     this.position.vel_x = vec_x/dist;
     this.position.vel_y = vec_y/dist;
 
-    return true //useful for using inside an if statement.  THAT MEANS DONT RELY ON THIS NORMAL COLLISION
+    return true //useful for using inside an if statement.
   }
   return false
 };
 
-//brings up the Math module.  Easier to call that way.
+/**
+ * brings up the Math module.  Easier to call that way.
+ */
 var sqrt = Math.sqrt;
 
-//returns delta_x, delta_y, and dist
+/** 
+ * returns delta_x, delta_y, and dist
+ */
 Circle.prototype.delta_x_y_dist = function(otherCircle) { //enemy, hero, or companion
   var delta_x = this.position.x - otherCircle.position.x,
       delta_y = this.position.y - otherCircle.position.y,
@@ -273,13 +336,13 @@ Circle.prototype.draw = function() {
 
 Circle.prototype.accelerate_to_hero = function() {
 
-  //get unit vector to hero
+  /* get unit vector to hero */
   var delta_ = this.delta_x_y_dist(hero);
 
   this.position.acc_x = -delta_[0]/delta_[3]; //delta_ = [vec_x,vec_y,dist]
   this.position.acc_y = -delta_[1]/delta_[2];
 
-  //vectors with magnitude
+  /* vectors with magnitude */
   var vel_x = this.position.vel_x*this.position.vel,
       vel_y = this.position.vel_y*this.position.vel,
       acc_x = this.position.acc_x*this.position.acc,
@@ -289,7 +352,7 @@ Circle.prototype.accelerate_to_hero = function() {
   this.position.vel_x = (vel_x+acc_x)/vec_mag;
   this.position.vel_y = (vel_y+acc_y)/vec_mag;
 
-  //add vectors 
+  /* add vectors */
   if(this.position.vel < this.position.vel_max) {
     this.position.vel += this.position.acc/delta_[2];
   }
